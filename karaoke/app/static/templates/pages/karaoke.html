@@ -1,0 +1,26 @@
+{% extends "base/index.html" %}
+
+{% block content %}
+
+<h1 class="text-primary">Sing QUIZ</h1>
+<video id="video-player" width="100%" controls class="d-none"></video>
+<div id="quiz" class="container text-center mt-4 d-none">
+    <h2 id="question" class="mb-4 fs-1"></h2>
+    <div id="choices" class="row justify-content-center"></div>
+</div>
+
+<div id="scores" class="d-none container mt-4">
+    <h2 class="mb-3 text-center">Ranking</h2>
+    <ul id="scores-list" class="list-group score-list mx-auto"></ul>
+</div>
+  
+
+<div id="countdown-overlay" class="countdown-overlay d-none">
+    <div id="countdown-number" class="countdown-number"></div>
+</div>
+  
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/karaoke.js"></script>
+{% endblock %}

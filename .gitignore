@@ -1,0 +1,9 @@
+hotspot
+ssl/*
+!ssl/.gitkeep
+rts_data
+karaoke/app/quiz/*
+!karaoke/app/quiz/.gitkeep
+karaoke/app/static/media/*
+!karaoke/app/static/media/.gitkeep
+*/__pycache__/*

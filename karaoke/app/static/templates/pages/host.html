@@ -1,0 +1,32 @@
+{% extends "base/index.html" %}
+
+{% block content %}
+<div>
+  <h1>CANTAQUIZ</h1>
+
+  <button onclick="startSong()">🎵 Avvia Karaoke</button>
+  <button onclick="requestQuestion()">❓ Avvia Domanda</button>
+  <button onclick="endQuestion()">✅ Chiudi Domanda</button>
+  <button onclick="showRanking()">📄 Mostra Classifica</button>
+
+  <h2>Classifica</h2>
+  {% for team in teams %}
+    <p>{{ team }}
+    {% for t in teams[team] %}
+      {{ t }}:{{ teams[team][t] }} ||
+    {% endfor %}
+    </p>
+  {% endfor %}
+  <ul id="scores"></ul>
+
+  <div id="hostQuestion">
+    {{ question }}
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/host.js"></script>
+{% endblock %}

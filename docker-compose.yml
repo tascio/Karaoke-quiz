@@ -1,0 +1,55 @@
+services:
+  karaoke:
+    container_name: karaoke_container
+    image: karaoke_image
+    build: ./karaoke
+    volumes:
+      - ./karaoke/app:/app
+    expose:
+      - "5090"
+    networks:
+      - karaoke_net
+
+  karaoke_nginx:
+    container_name: karaoke_nginx_container
+    image: nginx:alpine
+    volumes:
+      - ./nginx/client_nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    ports:
+    #  - "80:80"
+      - "443:443"
+    depends_on:
+      - karaoke
+    networks:
+      - karaoke_net
+  
+  redistimeseries:
+    container_name: karaoke_redis_container
+    image: redislabs/rejson
+    ports:
+      - "6379:6379"
+    # volumes:
+    #   - ./rts_data:/data
+    tmpfs:
+      - /data
+    command:
+     [ "redis-server","--loadmodule","/usr/lib/redis/modules/rejson.so"]
+     #, "--appendonly","yes","--save", "120", "1000"]
+    networks:
+      - karaoke_net
+
+  karaoke_init:
+    image: karaoke_image
+    depends_on:
+      - redistimeseries
+    command: python ./main/load_questions.py
+    volumes:
+      - ./karaoke/app:/app
+    networks:
+      - karaoke_net
+    restart: "no"
+
+networks:
+  karaoke_net:
+    driver: bridge
