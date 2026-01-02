@@ -6,4 +6,6 @@ karaoke/app/quiz/*
 !karaoke/app/quiz/.gitkeep
 karaoke/app/static/media/*
 !karaoke/app/static/media/.gitkeep
-*/__pycache__/*
+*__pycache__*
+*.log
+*.pyc
