@@ -1,0 +1,18 @@
+[
+  {
+      "id": "000001",
+      "question": "example question 1",
+      "answers": ["A:answ 0", "B:answ 1", "C:answ 2", "D:answ 3"],
+      "correct": 0
+    },
+
+    {
+      "id": "000002",
+      "question": "example question 2",
+      "answers": ["A:answ 0", "B:answ 1", "C:answ 2", "D:answ 3"],
+      "correct": 3
+    }
+  
+]
+
+#call this question file questions.json
