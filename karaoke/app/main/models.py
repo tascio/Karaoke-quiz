@@ -43,6 +43,9 @@ class redis_questions:
     
     def get_current_question(self):
         return self.redis.get_current_question()
+    
+    def get_all_questions(self):
+        return self.redis.get_all_questions()
 
 class redis_answer:
     def __init__(self):

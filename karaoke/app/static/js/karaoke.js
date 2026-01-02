@@ -1,6 +1,7 @@
 const video = document.getElementById("video-player");
 let unlocked = false;
 
+socket.on("quiz_finished", () => alert("Quiz ended!"));
 
 // Avvia il video
 socket.on("play_song", data => {
@@ -29,7 +30,7 @@ socket.on("show_question", data => {
     choicesDiv.innerHTML = "";
 
     // colori dei box in ordine
-    const colors = ["info", "warning", "danger", "success"];
+    const colors = ["primary", "warning", "danger", "purple"];
 
     data.choices.forEach((c, i) => {
         const [letter, text] = c.split(/:(.+)/);
@@ -41,8 +42,8 @@ socket.on("show_question", data => {
         btn.className = `answer-box bg-${colors[i % colors.length]} text-white d-flex align-items-center p-3 rounded`;
 
         btn.innerHTML = `
-          <div class="answer-letter me-3 fw-bold fs-3">${letter}</div>
-          <div class="answer-text fs-4">${text}</div>
+          <div class="answer-letter me-3 fw-bold fs-1">${letter}</div>
+          <div class="answer-text fw-bold fs-1">${text}</div>
         `;
 
         col.appendChild(btn);
@@ -60,10 +61,10 @@ socket.on("show_answer", data => {
         const answerBox = el.querySelector(".answer-box"); // prendi il div interno        
 
         if (i === correctIndex) {
-            answerBox.classList.remove("bg-info", "bg-warning", "bg-danger", "bg-success", "bg-primary");
-            answerBox.classList.add("bg-primary"); // evidenzia corretta
+            //answerBox.classList.remove("bg-info", "bg-warning", "bg-danger", "bg-purple", "bg-primary");
+            answerBox.classList.add("border", "border-success", "border-6", "answer-box-right"); // evidenzia corretta
         } else {
-            answerBox.style.opacity = "0.5"; // sfuma le altre
+            answerBox.style.opacity = "0.25"; // sfuma le altre
         }
     });
 
@@ -82,13 +83,13 @@ socket.on("show_answer", data => {
         .sort((a, b) => (b[1].points + (b[1].p_audio || 0)) - (a[1].points + (a[1].p_audio || 0)))
         .forEach(([username, info], i) => {
             const li = document.createElement("li");
-            li.className = "list-group-item score-item d-flex align-items-center justify-content-between";
+            li.className = "list-group-item score-item d-flex align-items-center text-bg-light fw-bold justify-content-between";
 
             li.innerHTML = `
                 <span class="score-rank">${i + 1}</span>
                 <span class="score-name">${username}</span>
                 <span class="score-points">+${info.points}</span>
-                <span class="ms-2 score-points">bonus ${info.p_audio}</span>
+                <span class="ms-2 score-points text-danger">bonus +${info.p_audio}</span>
             `;
 
             ul.appendChild(li);
@@ -113,7 +114,7 @@ socket.on("show_ranking_karaoke", data => {
 
     teams.forEach((team, index) => {
         const li = document.createElement("li");
-        li.className = "list-group-item score-item d-flex align-items-center justify-content-between";
+        li.className = "list-group-item score-item d-flex align-items-center fw-bold justify-content-between";
 
         const medal = medals[index] || `${index + 1}.`;
 

@@ -143,6 +143,23 @@ class Redis_driver:
         except Exception as e:
             logger.error(f"Error getting current question: {e}")
             return False
+    
+    def get_all_questions(self):
+        questions = []
+        cursor = 0
+        try:
+            while True:
+                cursor, keys = self.redis.scan(cursor, match="questions:*", count=100)
+                for key in keys:
+                    if isinstance(key, bytes):
+                        key = key.decode("utf-8")
+                    questions.append(self.redis.json().get(key))
+                if cursor== 0:
+                    break
+            return questions    
+        except Exception as e:
+            logger.error(f"Error in getting all questions {e}")
+            return False
         
     def save_player_answer(self, ip, answer, response_time_ms):
         logger.info(f"save player answer {ip} {answer} {response_time_ms}")

@@ -12,6 +12,7 @@ views_bp = Blueprint('views', __name__)
 SING = "sing"
 IDLE = "idle"
 QUIZ = "quiz"
+RESULTS = "results"
 TEN_CENTS = 1000
 BASE_CENTS = 100
 TEN_MS = 10000
@@ -29,7 +30,8 @@ def host():
     teams = rv.get_teams()
     rq = redis_questions()
     question = rq.get_current_question()
-    return render_template("pages/host.html", teams=teams, question=question)
+    questions = rq.get_all_questions()
+    return render_template("pages/host.html", teams=teams, current_question=question, questions=questions)
 
 @views_bp.route("/karaoke")
 def karaoke():
@@ -167,6 +169,8 @@ def receive_answer(data):
 @socketio.on("end_question")
 def end_question():
     process_end_question()
+    rg = redis_game_state()
+    rg.update_game_state(RESULTS)
 
 def process_end_question():
     rq = redis_questions()
@@ -207,6 +211,7 @@ def process_end_question():
        
     socketio.emit("show_scores_host", teams)
     socketio.emit("show_answer", {"correct": correct, "teams": scores_this_round})
+    socketio.emit("show_answer_right_players", {"correct": correct})
 
 @socketio.on("show_ranking")
 def show_ranking():
@@ -221,3 +226,7 @@ def mic_sampling_result(data):
     avg = int(float(data["avg_db"]))
     samples = data["samples"]
     rw.update_points_audio(ip, avg)
+
+@socketio.on("refresh_players")
+def refresh_players():
+    socketio.emit("refresh_players")

@@ -8,6 +8,7 @@
   <button onclick="requestQuestion()">❓ Avvia Domanda</button>
   <button onclick="endQuestion()">✅ Chiudi Domanda</button>
   <button onclick="showRanking()">📄 Mostra Classifica</button>
+  <button onclick="refreshPlayers()">Refresh Players</button>
 
   <h2>Classifica</h2>
   {% for team in teams %}
@@ -20,7 +21,12 @@
   <ul id="scores"></ul>
 
   <div id="hostQuestion">
-    {{ question }}
+    <h3>Current Question</h3>
+    <p>{{ current_question }}</p>
+    <h3>All Questions</h3>
+    {% for q in questions %}
+      <p> {{ q }}</p>
+    {% endfor %}
   </div>
 
 </div>

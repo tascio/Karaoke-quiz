@@ -9,7 +9,14 @@ socket.on("sync_state", state => {
   if (state.state === "sing") {
       socket.emit("start_song_refresh");
   }
+  if (state.state === "results") {
+    socket.emit("end_question_refresh");
+  }
 });
+
+socket.on("refresh_players", () => {
+  location.reload();
+})
 
 let username = "";
 let joined = false;
@@ -60,27 +67,29 @@ socket.on("show_question", data => {
   choicesDiv.innerHTML = "";
   choicesDiv.className = "d-flex flex-column align-items-center gap-3";
 
-  const colors = ["info", "warning", "danger", "success"];
+  const colors = ["primary", "warning", "danger", "purple"];
 
   data.choices.forEach((c, i) => {
     const [letter, _] = c.split(/:(.+)/);
 
     const btn = document.createElement("button");
-    btn.className = `btn btn-${colors[i % colors.length]} choice-btn display-1`;
+    btn.className = `btn btn-${colors[i % colors.length]} choice-btn display-1 text-white`;
     btn.style.width = "200px";
     btn.style.height = "120px";
     btn.style.borderRadius = "90%"; 
 
     btn.innerText = letter;
+    btn.dataset.index = i;
 
     if (answered) {
       btn.disabled = true;
 
       if (i === givenAnswer) {
-        btn.classList.replace(`btn-${colors[i]}`, "btn-primary");
+        //btn.classList.add("borber", "border-success", "border-6");
+        //btn.classList.replace(`btn-${colors[i]}`, "btn-primary");
         btn.disabled = false;
       } else {
-        btn.style.opacity = "0.4";
+        btn.style.opacity = "0.25";
       }
     }
 
@@ -89,8 +98,9 @@ socket.on("show_question", data => {
     btn.onclick = () => {
       if (!answered) {
         socket.emit("answer", { choice: i });
-        btn.classList.replace(`btn-${colors[i % colors.length]}`, "btn-primary");
+        //btn.classList.replace(`btn-${colors[i % colors.length]}`, "btn-primary");
         document.querySelectorAll(".choice-btn").forEach(b => b.disabled = true);
+        btn.disabled = false;
         answered = true;
       }
     };
@@ -98,6 +108,20 @@ socket.on("show_question", data => {
     choicesDiv.appendChild(btn);
   });
 });
+
+socket.on("show_answer_right_players", correct => {
+  document.querySelectorAll(".choice-btn").forEach(btn => {
+    const index = parseInt(btn.dataset.index);
+
+    if (index === correct.correct && !btn.disabled) {
+      btn.classList.add("border", "border-success", "border-6");
+      btn.style.width = "240px";
+      btn.style.height = "160px";
+    }
+  });
+});
+
+
 
 //SING
 socket.on("show_sing", () => {

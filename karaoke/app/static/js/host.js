@@ -16,6 +16,11 @@ function showRanking() {
   socket.emit("show_ranking");
 }
 
+function refreshPlayers() {
+  socket.emit("refresh_players");
+}
+
+socket.on("quiz_finished", () => alert("Quiz ended!"));
 
 socket.on("show_scores_host", scores => {
   const ul = document.getElementById("scores");
