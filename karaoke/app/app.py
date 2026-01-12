@@ -1,6 +1,6 @@
 from main import create_app
 from main.extensions import socketio
-from main.logger import logger
+from logger.logger import logger
 
 try:
     app = create_app()

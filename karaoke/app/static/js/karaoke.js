@@ -5,6 +5,7 @@ socket.on("quiz_finished", () => alert("Quiz ended!"));
 
 // Avvia il video
 socket.on("play_song", data => {
+    document.getElementById("qr-codes").classList.add("d-none");
     document.getElementById("quiz").classList.add("d-none");
     document.getElementById("scores").classList.add("d-none");
     document.getElementById("countdown-overlay").classList.add("d-none");
@@ -16,6 +17,7 @@ socket.on("play_song", data => {
 
 // Mostra domanda
 socket.on("show_question", data => {
+    document.getElementById("qr-codes").classList.add("d-none");
     document.getElementById("countdown-overlay").classList.add("d-none");
     if (!video.paused) {
         video.pause();
@@ -30,7 +32,7 @@ socket.on("show_question", data => {
     choicesDiv.innerHTML = "";
 
     // colori dei box in ordine
-    const colors = ["primary", "warning", "danger", "purple"];
+    const colors = ["primary", "warning", "pink", "purple"];
 
     data.choices.forEach((c, i) => {
         const [letter, text] = c.split(/:(.+)/);
@@ -53,6 +55,7 @@ socket.on("show_question", data => {
 
 // Mostra risposta corretta e classifica
 socket.on("show_answer", data => {
+    document.getElementById("qr-codes").classList.add("d-none");
     document.getElementById("countdown-overlay").classList.add("d-none");
     const correctIndex = data.correct;
     const choicesDiv = document.getElementById("choices");
@@ -99,6 +102,8 @@ socket.on("show_answer", data => {
 
 
 socket.on("show_ranking_karaoke", data => {
+    console.log(data);
+    document.getElementById("qr-codes").classList.add("d-none");
     document.getElementById("quiz").classList.add("d-none");
     const scoresContainer = document.getElementById("scores");
     scoresContainer.classList.remove("d-none");
@@ -106,9 +111,9 @@ socket.on("show_ranking_karaoke", data => {
     const ul = document.getElementById("scores-list");
     ul.innerHTML = ""; // reset lista
 
-    // Trasforma l'oggetto in array e ordina per punteggio + p_audio
+    // Trasforma l'oggetto in array e ordina per points + p_audio
     const teams = Object.values(data);
-    teams.sort((a, b) => (b.punteggio + (b.p_audio || 0)) - (a.punteggio + (a.p_audio || 0)));
+    teams.sort((a, b) => (b.points + (b.p_audio || 0)) - (a.points + (a.p_audio || 0)));
 
     const medals = ["🥇", "🥈", "🥉"];
 
@@ -118,7 +123,7 @@ socket.on("show_ranking_karaoke", data => {
 
         const medal = medals[index] || `${index + 1}.`;
 
-        const finalScore = (team.punteggio || 0) + (team.p_audio || 0);
+        const finalScore = (team.points || 0) + (team.p_audio || 0);
 
         li.innerHTML = `
             <span class="score-rank">${medal}</span>
@@ -136,12 +141,25 @@ socket.on("show_ranking_karaoke", data => {
   const overlay = document.getElementById("countdown-overlay");
   const number = document.getElementById("countdown-number");
   
-  socket.on("show_countdown", data => {
-    overlay.classList.remove("d-none");
-    number.innerText = data.count;
+socket.on("show_countdown", data => {
+overlay.classList.remove("d-none");
+number.innerText = data.count;
+
+number.style.animation = "none";
+number.offsetHeight; // trigger reflow
+number.style.animation = null;
+});
   
-    number.style.animation = "none";
-    number.offsetHeight; // trigger reflow
-    number.style.animation = null;
-  });
-  
+
+socket.on("karaoke_idle", () => {
+    document.getElementById("video-player").classList.add("d-none");
+    document.getElementById("quiz").classList.add("d-none");
+    document.getElementById("scores").classList.add("d-none");
+    document.getElementById("countdown-overlay").classList.add("d-none");
+
+    document.getElementById("qr-codes").classList.remove("d-none");
+});
+
+socket.on("action_blocked", data => {
+    console.log(data);
+});

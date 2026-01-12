@@ -3,6 +3,31 @@
 {% block content %}
 
 <h1 class="text-primary">Sing QUIZ</h1>
+
+<div id="qr-codes" class="container text-center mt-5 d-none">
+    <div class="row justify-content-center align-items-center g-4">
+        <!-- WiFi QR Code -->
+        <div class="col-12 col-md-6">
+        <div class="card shadow-lg border-0">
+            <div class="card-body p-4">
+            <h3 class="card-title text-primary mb-3">Connect To WiFi</h3>
+            <img src="/static/qrcodes/wifi.svg" alt="WiFi QR Code" class="img-fluid" style="max-width: 300px;">
+            </div>
+        </div>
+        </div>
+        
+        <!-- Game Link QR Code -->
+        <div class="col-12 col-md-6">
+        <div class="card shadow-lg border-0">
+            <div class="card-body p-4">
+            <h3 class="card-title text-success mb-3">Join in!</h3>
+            <img src="/static/qrcodes/gamelink.svg" alt="Game Link QR Code" class="img-fluid" style="max-width: 300px;">
+            </div>
+        </div>
+        </div>
+    </div>
+</div>
+
 <video id="video-player" width="80%" controls class="d-none"></video>
 <div id="quiz" class="container text-center mt-4 d-none">
     <h2 id="question" class="mb-4 fs-1"></h2>

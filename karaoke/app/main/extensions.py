@@ -1,6 +1,5 @@
 from flask_socketio import SocketIO
 from redis import Redis
-import json
 
 socketio = SocketIO(async_mode="eventlet")
 

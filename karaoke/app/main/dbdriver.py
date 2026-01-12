@@ -1,33 +1,27 @@
-from main.logger import logger
-import random, time
+from logger.logger import logger
+import time
 
-TEN_CENTS = 1000
-BASE_CENTS = 100
-TEN_MS = 10000
-BASE_MS = 1000
-
-class Redis_driver:
-    def __init__(self, redis):
-        self.redis = redis
+class RedisClient:
+    def __init__(self, redis_client):
+        self.redis = redis_client
     
-    def registrazione(self, ip, username):
-        ip_ = self.redis.json().get(f"ip:{ip}")
+class TeamsRepo:
+    def __init__(self, redis: RedisClient):
+        self.redis = redis.redis
 
-        if ip_:
-            logger.error(f"registration ip already exist {ip}")
-            return False
+    def exist_ip(self, ip):
+        return bool(self.redis.json().get(f"ip:{ip}"))
+    
+    def exist_username(self, username):
         teams = self.get_teams()
-        if any(team_data['username'] == username for team_data in teams.values()):
-            logger.error(f"Registration failed: Username already exists {username}")
-            return False
-        
+        return bool(any(team_data['username'] == username for team_data in teams.values()))
+    
+    def create(self, ip, username):
         try:
             self.redis.json().set(f"ip:{ip}", "$", {
                 "username": username,
-                "punteggio": 0,
+                "points": 0,
                 "p_audio": 0,
-                "indovinate": 0,
-                "sbagliate": 0,
             })
             logger.info(f"new player added {ip} {username}")
         except Exception as e:
@@ -56,176 +50,214 @@ class Redis_driver:
         else:
             return False
         
-    def update_points(self, ip, punteggio, indovinate, sbagliate, p_audio):
+    def update_points(self, ip, points, p_audio):
         try:
-            if punteggio:
-                self.redis.json().numincrby(ip, "$.punteggio", punteggio)
-            if indovinate:
-                self.redis.json().numincrby(ip, "$.indovinate", indovinate)
-            if sbagliate:
-                self.redis.json().numincrby(ip, "$.sbagliate", sbagliate)
+            if points:
+                self.redis.json().numincrby(f"ip:{ip}", "$.points", points)
             if p_audio:
-                self.redis.json().numincrby(ip, "$.p_audio", p_audio)
+                self.redis.json().numincrby(f"ip:{ip}", "$.p_audio", p_audio)
 
-            logger.info(f"point update for {ip} with {punteggio} {indovinate} {sbagliate} {p_audio}")
+            logger.info(f"point update for {ip} with {points} {p_audio}")
         except Exception as e:
             logger.error(f"Error in points update {ip} - {e}")
             return False
         return True
     
-    def update_points_audio(self, ip, p_audio):
-        logger.info(f"update point audio {ip} {p_audio}")
-        data = self.redis.json().get(f"answer:{ip}")
-        logger.info(f"DEBUG answer:{ip} = {data}")
+class QuizRepo:
+    def __init__(self, redis: RedisClient):
+        self.redis = redis.redis
+    
+    def populate(self, quiz, id_q):
         try:
-            if p_audio:
-                self.redis.json().numincrby(f"answer:{ip}", "$.p_audio", p_audio)
-            logger.info(f"points audio update for {ip} with {p_audio}")
+            self.redis.json().set(f"quiz:{id_q}", "$", {
+                "quiz": quiz['quiz'],
+                "answers": quiz['answers'],
+                "correct": quiz['correct'],
+                "done": False,
+            })
+            logger.info(f"new quiz added {id_q}")
         except Exception as e:
-            logger.error(f"Error in points audio update {ip} - {e}")
+            logger.error(f"Redis quiz populate error: {e}")
             return False
         return True
     
-    def get_random_question(self):
+    def get_quizzes_not_done(self):
         keys = []
         cursor = 0
 
         while True:
-            cursor, batch = self.redis.scan(
-                cursor,
-                match="questions:*",
-                count=100
-            )
+            cursor, batch = self.redis.scan(cursor, match="quiz:*", count=100)
 
-            for key in batch:
-                q = self.redis.json().get(key)
+            for id_q in batch:
+                q = self.redis.json().get(id_q)
                 if q and not q.get("done", False):
-                    keys.append(key)
+                    keys.append(id_q)
 
             if cursor == 0:
                 break
-
-        if not keys:
-            return False  #quiz finito
-
-        key = random.choice(keys)
-        try:
-            self.redis.json().set(key, "$.done", True)
-        except Exception as e:
-            logger.error(f"Error marking question done {key}: {e}")
-            return None
-        question = self.redis.json().get(key)
-        question["id"] = key.split(":")[1]
-
-        return question
-
-    def set_current_question(self, question):
-        try:
-            self.redis.json().set("current_question", "$", question)
-            logger.info(f"question setted {question}")
-        except Exception as e:
-            logger.error(f"setting question error: {e}")
-            return False
+        return keys
     
-    def set_start_question(self, question):
-        question["start_ts"] = time.time()
+    def mark_quiz_done(self, id_q):
         try:
-            self.redis.json().set("current_question", "$", question)
-            logger.info(f"question time start setted {question}")
+            self.redis.json().set(f"quiz:{id_q}", "$.done", True)
         except Exception as e:
-            logger.error(f"question time start error: {e}")
+            logger.error(f"Error marking quiz done {id_q}: {e}")
             return False
 
-    def get_current_question(self):
-        try:
-            question = self.redis.json().get("current_question")
-            return question
-        except Exception as e:
-            logger.error(f"Error getting current question: {e}")
-            return False
+    def get_quiz(self, id_q):
+        quiz = self.redis.json().get(f"quiz:{id_q}")
+        return quiz
     
-    def get_all_questions(self):
-        questions = []
+    def get_all_quizzes(self):
+        quiz = []
         cursor = 0
         try:
             while True:
-                cursor, keys = self.redis.scan(cursor, match="questions:*", count=100)
+                cursor, keys = self.redis.scan(cursor, match="quiz:*", count=100)
                 for key in keys:
                     if isinstance(key, bytes):
                         key = key.decode("utf-8")
-                    questions.append(self.redis.json().get(key))
-                if cursor== 0:
+                    quiz.append(self.redis.json().get(key))
+                if cursor == 0:
                     break
-            return questions    
+            return quiz    
         except Exception as e:
-            logger.error(f"Error in getting all questions {e}")
+            logger.error(f"Error in getting all quiz {e}")
             return False
         
-    def save_player_answer(self, ip, answer, response_time_ms):
-        logger.info(f"save player answer {ip} {answer} {response_time_ms}")
-        ip_ = self.redis.json().get(f"answer:{ip}")
-        if ip_.get("done"):
-            logger.error(f"player has already responded  {ip}")
-            return False
-        
+
+class RoundsRepo:
+    def __init__(self, redis: RedisClient):
+        self.redis = redis.redis
+    
+    def get_current_question(self):
+        cursor = 0
         try:
-            self.redis.json().set(f"answer:{ip}", "$.answer", answer)
-            self.redis.json().set(f"answer:{ip}", "$.response_time_ms", response_time_ms)
-            logger.info(f"player answer saved {ip} - {answer}")
+            while True:
+                cursor, keys = self.redis.scan(cursor, match="round:*", count=100)
+                for key in keys:
+                    if isinstance(key, bytes):
+                        key = key.decode("utf-8")
+
+                    data = self.redis.json().get(key)
+                    if data and data.get("current") is True:
+                        data["id_q"] = key.split(":")[-1]
+                        return data
+
+                if cursor == 0:
+                    break
+        except Exception as e:
+            logger.error(f"Error getting current round: {e}")
+            return False
+
+        return None
+
+    def set_start_question(self, id_q):
+        try:
+            t = time.time()
+            self.redis.json().set(f"round:{id_q}", "$.start_ts", t)
+            logger.info(f"question start setted {id_q} {t}")
+            return True
+        except Exception as e:
+            logger.error(f"start setting question error: {e}")
+            return False
+    
+    def set_current_question(self, id_q):
+        cursor = 0
+        while True:
+            cursor, keys = self.redis.scan(cursor, match="round:*")
+            for key in keys:
+                self.redis.json().set(key, "$.current", False)
+            if cursor == 0:
+                break
+
+        key = f"round:{id_q}"
+
+        try:
+            if not self.redis.exists(key):
+                self.redis.json().set(key, "$", {
+                    "current": True
+                })
+            else:
+                self.redis.json().set(key, "$.current", True)
+
+            logger.info(f"question set {id_q}")
+            return True
+
+        except Exception as e:
+            logger.error(f"setting question error: {e}")
+            return False
+
+    
+class AnswersRepo:
+    def __init__(self, redis: RedisClient):
+        self.redis = redis.redis
+    
+    def exist_answer(self, id_q, ip):
+        data = self.redis.json().get(f"answer:{id_q}", f"$.players.{ip}.done")
+        return bool(data and data[0] is True)
+
+    
+    def initialize_player(self, id_q, ip):
+        if not self.redis.exists(f"answer:{id_q}"):
+            self.redis.json().set(f"answer:{id_q}", "$", {"players": {}})
+        self.redis.json().set(f"answer:{id_q}", f"$.players.{ip}", {
+                "response_time": None,
+                "answer": None,
+                "points": 0,
+                "p_audio": 1,
+                "done": False,
+            }
+        )
+    
+    def set_players_done(self, id_q):
+        try:
+            data = self.redis.json().get(f"answer:{id_q}", "$.players")
+            if not data:
+                return False
+
+            players = data[0] 
+
+            for ip in players.keys():
+                self.redis.json().set(f"answer:{id_q}", f"$.players.{ip}.done", True)
+            # self.redis.json().set(f"answer:{id_q}", "$.players.*.done", True)
+            return True
+        except Exception as e:
+            logger.error(f"set players done error: {e}")
+            return False
+
+    def save_player_answer(self, id_q, ip, answer, points, response_time):        
+        try:
+            self.redis.json().set(f"answer:{id_q}", f"$.players.{ip}.response_time", response_time)
+            self.redis.json().set(f"answer:{id_q}", f"$.players.{ip}.answer", answer)
+            self.redis.json().set(f"answer:{id_q}", f"$.players.{ip}.points", points)
+            self.redis.json().set(f"answer:{id_q}", f"$.players.{ip}.done", True)
+            logger.info(f"player answer saved {id_q} {ip} - {answer} - {response_time} - {points}")
         except Exception as e:
             logger.error(f"player answer error {e}")
             return False
         return True
-
-    def get_player_answer(self, ip):
-        logger.info(f"get player {ip}")
-        return self.redis.json().get(f"answer:{ip}") or False
-
-    def set_processed(self, ip):
-        logger.info(f"set player {ip} done True")
-        try:
-            self.redis.json().set(f"answer:{ip}", "$.done", True)
-            logger.info(f"set player {ip} done True")
-        except Exception as e:
-            logger.error(f"error in set done player {e}")
-            return False
     
-    def clear_player_answers(self):
-        logger.info("Clearing all player answers")
-        cursor = 0
-        try:
-            while True:
-                cursor, keys = self.redis.scan(
-                    cursor=cursor,
-                    match="answer:*",
-                    count=100
-                )
-                if keys:
-                    self.redis.delete(*keys)
-                    logger.info(f"Deleted {len(keys)} answer keys")
-                if cursor == 0:
-                    break
-        except Exception as e:
-            logger.error(f"Error clearing player answers: {e}")
-            return False
-        return True
-    
-    def reset_player_answers(self, teams):
-        for ip_, _ in teams.items():
-            ip = ip_.split(':')[-1]
-            try:
-                self.redis.json().set(f"answer:{ip}", "$", {
-                    "answer": -1,
-                    "response_time_ms": TEN_CENTS,
-                    "p_audio": 0,
-                    "done" : False
-                })
-                logger.info(f"reset player answer saved {ip} {self.get_player_answer(ip_)}")
-            except Exception as e:
-                logger.error(f"reset player answer error {e}")
-                return False
-        return True
+    def save_player_p_audio(self, id_q, ip, p_audio):
+        self.redis.json().set(f"answer:{id_q}", f"$.players.{ip}.p_audio", p_audio)
 
+    def get_all_player_answers(self, id_q):
+        data = self.redis.json().get(f"answer:{id_q}", "$.players")
+        if not data:
+            return False
+
+        return data[0]
+    
+    def get_player_answer(self, id_q, ip):
+        answ = self.redis.json().get(f"answer:{id_q}", f"$.players.{ip}.answer")
+        logger.info(f"get player answer {id_q} {ip} {answ}")
+        if answ is None:
+            return False
+        return answ[0] if len(answ) > 0 else False
+
+class CurrentGameState:
+    def __init__(self, redis: RedisClient):
+        self.redis = redis.redis
 
     def update_game_state(self, state):
         try:
@@ -233,11 +265,12 @@ class Redis_driver:
                 "state" : state
             })
             logger.info(f"game state updated in {state}")
+            return True
         except Exception as e:
             logger.error(f"error in game state update {e}")
             return False
 
     def get_current_game_state(self):
-        state = self.redis.json().get(f"game:state")
+        state = (self.redis.json().get(f"game:state") or {}).get('state', None)
         logger.info(f"get game state {state}")
         return state

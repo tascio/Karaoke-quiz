@@ -1,5 +1,6 @@
 
 socket.on("sync_state", state => {
+  console.log(state);
   if (!state || !state.state) {
     return;
   }
@@ -10,7 +11,7 @@ socket.on("sync_state", state => {
       socket.emit("start_song_refresh");
   }
   if (state.state === "results") {
-    socket.emit("end_question_refresh");
+    socket.emit("request_question_refresh");
   }
 });
 
@@ -57,6 +58,7 @@ socket.on("show_question", data => {
     answered = true;
     givenAnswer = data.answer.answer;
   }
+
   
   document.getElementById("quiz").classList.remove("d-none");
   document.getElementById("sing").classList.add("d-none");
@@ -67,7 +69,7 @@ socket.on("show_question", data => {
   choicesDiv.innerHTML = "";
   choicesDiv.className = "d-flex flex-column align-items-center gap-3";
 
-  const colors = ["primary", "warning", "danger", "purple"];
+  const colors = ["primary", "warning", "pink", "purple"];
 
   data.choices.forEach((c, i) => {
     const [letter, _] = c.split(/:(.+)/);
@@ -85,22 +87,21 @@ socket.on("show_question", data => {
       btn.disabled = true;
 
       if (i === givenAnswer) {
-        //btn.classList.add("borber", "border-success", "border-6");
-        //btn.classList.replace(`btn-${colors[i]}`, "btn-primary");
         btn.disabled = false;
       } else {
-        btn.style.opacity = "0.25";
+        btn.style.opacity = "0.1";
       }
     }
-
-  
 
     btn.onclick = () => {
       if (!answered) {
         socket.emit("answer", { choice: i });
-        //btn.classList.replace(`btn-${colors[i % colors.length]}`, "btn-primary");
-        document.querySelectorAll(".choice-btn").forEach(b => b.disabled = true);
+        document.querySelectorAll(".choice-btn").forEach(b => {
+          b.disabled = true; 
+          b.style.opacity = '0.1';
+        });
         btn.disabled = false;
+        btn.style.opacity = '1';
         answered = true;
       }
     };
@@ -109,17 +110,93 @@ socket.on("show_question", data => {
   });
 });
 
-socket.on("show_answer_right_players", correct => {
+socket.on("show_question_refresh", data => {
+  console.log(data);
+  document.getElementById("quiz").classList.remove("d-none");
+  document.getElementById("sing").classList.add("d-none");
+  document.getElementById("status").classList.add("d-none");
+  document.getElementById("question").innerText = data.question;
+
+  const choicesDiv = document.getElementById("choices");
+  choicesDiv.innerHTML = "";
+  choicesDiv.className = "d-flex flex-column align-items-center gap-3";
+
+  const colors = ["primary", "warning", "pink", "purple"];
+
+  data.choices.forEach((c, i) => {
+    const [letter, _] = c.split(/:(.+)/);
+
+    const btn = document.createElement("button");
+    btn.className = `btn btn-${colors[i % colors.length]} choice-btn display-1 text-white`;
+    btn.style.width = "200px";
+    btn.style.height = "120px";
+    btn.style.borderRadius = "90%"; 
+
+    btn.innerText = letter;
+    btn.dataset.index = i;
+
+      btn.disabled = true;
+
+      if (i === data.answer) {
+        btn.disabled = false;
+      } else {
+        btn.style.opacity = "0.1";
+      }
+      choicesDiv.appendChild(btn);
+      show_answer_right_players({"correct": data.correct,
+                                  "answer": data.answer
+                                });
+  });
+})
+
+socket.on("show_answer_right_players", data => {
+  show_answer_right_players(data); 
+});
+
+function show_answer_right_players(data) {
   document.querySelectorAll(".choice-btn").forEach(btn => {
     const index = parseInt(btn.dataset.index);
-
-    if (index === correct.correct && !btn.disabled) {
+    if (index === data.correct && !btn.disabled) {
       btn.classList.add("border", "border-success", "border-6");
       btn.style.width = "240px";
       btn.style.height = "160px";
+      btn.style.position = "relative";
+
+      const icon = document.createElement("div");
+      icon.className = "bg-success";
+      icon.style.width = "64px";
+      icon.style.height = "64px";
+      icon.style.position = "absolute";
+      icon.style.mask = "url('/static/icons/check2-circle.svg') no-repeat center";
+      icon.style.maskSize = "contain";
+      icon.style.webkitMask = icon.style.mask;
+      icon.style.top = "30%";
+      icon.style.left = "60%";
+
+      btn.appendChild(icon);
+    }
+    if (index !== data.correct && index === data.answer && !btn.disabled)
+    {
+      btn.classList.add("border", "border-danger", "border-6");
+      btn.style.width = "240px";
+      btn.style.height = "160px";
+      btn.style.position = "relative";
+
+      const icon = document.createElement("div");
+      icon.className = "bg-danger";
+      icon.style.width = "64px";
+      icon.style.height = "64px";
+      icon.style.position = "absolute";
+      icon.style.mask = "url('/static/icons/x-circle.svg') no-repeat center";
+      icon.style.maskSize = "contain";
+      icon.style.webkitMask = icon.style.mask;
+      icon.style.top = "30%";
+      icon.style.left = "60%";
+
+      btn.appendChild(icon);
     }
   });
-});
+}
 
 
 
@@ -148,9 +225,7 @@ let micSum = 0;
 let micSamples = 0;
 let micInterval = null;
 
-// Funzione per inizializzare l'accesso al microfono una sola volta
-async function initMic() {
-  if (micStream) return; // Evita di reinizializzare se già fatto
+async function initMic() {// Evita di reinizializzare se già fatto
   micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
   audioContext = new AudioContext();
   const source = audioContext.createMediaStreamSource(micStream);
@@ -159,8 +234,7 @@ async function initMic() {
   source.connect(analyser);
 }
 
-// Funzione per misurare il volume in una finestra di tempo
-async function measureWindow(durationMs = 1000) { // Ridotto a 1 secondo per campionamenti più frequenti e precisi
+async function measureWindow(durationMs = 1000) { 
   if (!analyser) {
     throw new Error("Microfono non inizializzato");
   }
@@ -177,32 +251,32 @@ async function measureWindow(durationMs = 1000) { // Ridotto a 1 secondo per cam
         rms += v * v;
       }
       rms = Math.sqrt(rms / data.length);
-      const db = 20 * Math.log10(rms || 0.000001); // Evita log di zero
+      const db = 20 * Math.log10(rms || 0.000001); 
       sum += db;
       samples++;
       if (Date.now() - start >= durationMs) {
         clearInterval(interval);
         resolve(sum / samples);
       }
-    }, 50); // Campionamento più frequente (ogni 50ms) per una media più accurata nella finestra
+    }, 50); 
   });
 }
 
 socket.on("start_mic_sampling", async () => {
   if (micSampling) return;
   try {
-    await initMic(); // Inizializza una volta sola
+    await initMic();
     micSampling = true;
     micSum = 0;
     micSamples = 0;
     micInterval = setInterval(async () => {
       if (!micSampling) return;
-      const avgDb = await measureWindow(1000); // Finestra di 1 secondo
+      const avgDb = await measureWindow(1000); 
       micSum += avgDb;
       micSamples++;
-    }, 1100); // Leggero overlap per coprire meglio, ma evita sovraccarico su smartphone
+    }, 1100); 
   } catch (error) {
-    console.error("Errore nell'accesso al microfono:", error);
+    console.error("Error in reading mic:", error);
     socket.emit("mic_sampling_error", { message: error.message });
   }
 });
@@ -216,29 +290,25 @@ socket.on("stop_mic_sampling", () => {
 
   let finalAvgDb = micSamples ? micSum / micSamples : -Infinity;
 
-  let score = 1; // minimo assoluto, mai 0
+  let score = 1;
 
   if (finalAvgDb !== -Infinity && isFinite(finalAvgDb)) {
-    // NUOVA SCALA più severa, calibrata per il canto vero
-    const minDb = -55;    // canto molto piano o parlato normale → punteggio bassissimo
-    const maxDb = 15;    // canto davvero forte e proiettato → 100 punti
+    const minDb = -50;    // Range Db min
+    const maxDb = -1;    // Range Db max
 
     if (finalAvgDb >= maxDb) {
       score = 100;
     } else if (finalAvgDb > minDb) {
-      let normalized = (finalAvgDb - minDb) / (maxDb - minDb); // da 0 a 1
-      // Curva esponenziale forte: premia moltissimo solo i volumi alti
-      normalized = Math.pow(normalized, 2.0); // esponente 2 = curva quadratica
-      score = Math.round(1 + normalized * 99); // da 1 a 100
+      let normalized = (finalAvgDb - minDb) / (maxDb - minDb); 
+      normalized = Math.pow(normalized, 2.0); 
+      score = Math.round(1 + normalized * 99); 
     } else {
-      score = 1; // sotto -65 dB → quasi silenzio o parlato molto piano
+      score = 1;
     }
   }
 
-  // INVIO AL BACKEND: solo lo score positivo e i campioni (avg_db opzionale solo per debug)
   socket.emit("mic_sampling_result", {
-    avg_db: score,          // ← QUESTO è il punteggio del quiz (1-100)
+    avg_db: score,         
     samples: micSamples,
-    // avg_db: finalAvgDb.toFixed(1)  ← commenta o rimuovi se non ti serve più nel backend
   });
 });
