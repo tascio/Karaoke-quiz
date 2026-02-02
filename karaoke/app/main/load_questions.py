@@ -9,13 +9,10 @@ questions = random.sample(questions, min(10, len(questions)))
 
 for quest in questions:
     try:
-        rd.json().set(f"quiz:{quest['id']}", "$", {
-            "quiz": quest['question'],
-            "answers": quest['answers'],
-            "correct": quest['correct'],
-            "done" : False
-        })
-        print(f"new question added {quest['id']}")
+        quest['done'] = False
+        quest['id_q'] = quest.pop('quid')
+        rd.json().set(f"quiz:{quest['id_q']}", "$", quest)
+        print(f"new question added {quest['id_q']}")
     except Exception as e:
         print(f"question adding error: {quest} {e}")
 

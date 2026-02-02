@@ -1,18 +1,37 @@
 [
   {
-      "id": "000001",
-      "question": "example question 1",
-      "answers": ["A:answ 0", "B:answ 1", "C:answ 2", "D:answ 3"],
+      "question": "Per quanto si vendono i Gangs in doppiopetto?",
+      "answers": [
+        "A:Per cento lire",
+        "B:Per mille lire",
+        "C:Per un milione di lire",
+        "D:Per 1 bitcoin"
+      ],
+      "author": "mirko",
+      "current_user": "mirko",
+      "link": "",
+      "title": "hanno ucciso luomo ragno edited",
+      "artist": "883",
+      "quid": "000007",
       "correct": 0
     },
 
     {
-      "id": "000002",
-      "question": "example question 2",
-      "answers": ["A:answ 0", "B:answ 1", "C:answ 2", "D:answ 3"],
-      "correct": 3
+      "question": "Per quanto si vendono i Gangs in doppiopetto?",
+      "answers": [
+        "A:Per cento lire",
+        "B:Per mille lire",
+        "C:Per un milione di lire",
+        "D:Per 1 bitcoin"
+      ],
+      "author": "mirko",
+      "current_user": "mirko",
+      "link": "",
+      "title": "hanno ucciso luomo ragno edited",
+      "artist": "883",
+      "quid": "000007",
+      "correct": 0
     }
   
 ]
 
-#call this question file questions.json

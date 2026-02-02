@@ -1,17 +1,24 @@
+let username = "";
+let joined = false;
+let answered = false;
 
-socket.on("sync_state", state => {
-  console.log(state);
-  if (!state || !state.state) {
+socket.on("sync_state", data => {
+  console.log('data sync', data);
+
+  if (!data) {
     return;
   }
-  if (state.state === "quiz") {
+  if (data.state === "quiz") {
       socket.emit("request_question_refresh");
   }
-  if (state.state === "sing") {
+  if (data.state === "sing") {
       socket.emit("start_song_refresh");
   }
-  if (state.state === "results") {
+  if (data.state === "quiz_end") {
     socket.emit("request_question_refresh");
+  }
+  if (typeof data.audioEffectsPlayers === "boolean") {
+    audioEffectsPlayers = data.audioEffectsPlayers;
   }
 });
 
@@ -19,23 +26,6 @@ socket.on("refresh_players", () => {
   location.reload();
 })
 
-let username = "";
-let joined = false;
-let answered = false;
-
-function join() {
-  if (joined) return;
-
-  const input = document.getElementById("username");
-  username = input.value.trim();
-
-  if (!username) {
-    alert("Inserisci un nome squadra");
-    return;
-  }
-
-  socket.emit("join", { "username": username , "role": "player" });
-}
 
 socket.on("join_ok", () => {
   setTimeout(() => {
@@ -47,10 +37,13 @@ socket.on("username_exist", () => {
   alert("Username or player already exist!");
 });
 
+socket.on("connect", () => {
+  console.log("connected ", socket.id);
+});
 
 //QUIZ
 socket.on("show_question", data => {
-  console.log(data);
+  console.log('show question ', data);
   answered = false;
   let givenAnswer = null;
   
@@ -111,7 +104,8 @@ socket.on("show_question", data => {
 });
 
 socket.on("show_question_refresh", data => {
-  console.log(data);
+  console.log('show question refresh ', data);
+
   document.getElementById("quiz").classList.remove("d-none");
   document.getElementById("sing").classList.add("d-none");
   document.getElementById("status").classList.add("d-none");
@@ -135,6 +129,7 @@ socket.on("show_question_refresh", data => {
     btn.innerText = letter;
     btn.dataset.index = i;
 
+    if (data.answer != null) {
       btn.disabled = true;
 
       if (i === data.answer) {
@@ -142,18 +137,82 @@ socket.on("show_question_refresh", data => {
       } else {
         btn.style.opacity = "0.1";
       }
-      choicesDiv.appendChild(btn);
-      show_answer_right_players({"correct": data.correct,
-                                  "answer": data.answer
-                                });
+    } else {
+      btn.onclick = () => {
+        if (data.answer == null || data.answer == undefined) {
+          socket.emit("answer", { choice: i });
+          document.querySelectorAll(".choice-btn").forEach(b => {
+            b.disabled = true; 
+            b.style.opacity = '0.1';
+          });
+          btn.disabled = false;
+          btn.style.opacity = '1';
+
+        }
+      };
+    }
+    choicesDiv.appendChild(btn);
+    
   });
+  if (data.answer != null || data.answer != undefined) {
+    show_answer_right_players({"correct": data.correct,
+      "answer": data.answer
+    });
+  }
 })
 
 socket.on("show_answer_right_players", data => {
   show_answer_right_players(data); 
 });
 
+//SING
+socket.on("show_sing", () => {
+  document.getElementById("quiz").classList.add("d-none");
+  document.getElementById("status").classList.add("d-none");
+  document.getElementById("sing").classList.remove("d-none");
+});
+
+//IDLE
+socket.on("idle", () => {
+  document.getElementById("quiz").classList.add("d-none");
+  document.getElementById("sing").classList.add("d-none");
+  document.getElementById("status").classList.remove("d-none");
+});
+
+socket.on("quiz_finished", () => alert("Quiz ended!"));
+
+
+//PART OF THE CODE RELATING SIGN IN
+function join() {
+  if (joined) return;
+
+  const input = document.getElementById("username");
+  username = input.value.trim();
+
+  if (!username) {
+    alert("Inserisci un nome squadra");
+    return;
+  }
+
+  socket.emit("join", { "username": username , "role": "player" });
+}
+///////////////////////////////////////////////////
+
+
+
+
+
+//PART OF THE CODE RELATING MAKE EVIDENT RIGHT OR WRONG ANSWER
 function show_answer_right_players(data) {
+  console.log('show answer right ', data);
+  if (data.answer == null) {
+    playRandomAudio(audioNull);
+    document.querySelectorAll(".choice-btn").forEach(btn => {
+      btn.disabled = true;
+      btn.style.opacity = '0.1';
+      return;
+    });
+  }
   document.querySelectorAll(".choice-btn").forEach(btn => {
     const index = parseInt(btn.dataset.index);
     if (index === data.correct && !btn.disabled) {
@@ -173,6 +232,7 @@ function show_answer_right_players(data) {
       icon.style.top = "30%";
       icon.style.left = "60%";
 
+      playRandomAudio(audioRights);
       btn.appendChild(icon);
     }
     if (index !== data.correct && index === data.answer && !btn.disabled)
@@ -193,122 +253,13 @@ function show_answer_right_players(data) {
       icon.style.top = "30%";
       icon.style.left = "60%";
 
+      playRandomAudio(audioWrongs);
       btn.appendChild(icon);
     }
   });
 }
+/////////////////////////////////////////////
 
 
 
-//SING
-socket.on("show_sing", () => {
-  document.getElementById("quiz").classList.add("d-none");
-  document.getElementById("status").classList.add("d-none");
-  document.getElementById("sing").classList.remove("d-none");
-});
 
-//IDLE
-socket.on("idle", () => {
-  document.getElementById("quiz").classList.add("d-none");
-  document.getElementById("sing").classList.add("d-none");
-  document.getElementById("status").classList.remove("d-none");
-});
-
-socket.on("quiz_finished", () => alert("Quiz ended!"));
-
-
-let micStream = null;
-let audioContext = null;
-let analyser = null;
-let micSampling = false;
-let micSum = 0;
-let micSamples = 0;
-let micInterval = null;
-
-async function initMic() {// Evita di reinizializzare se già fatto
-  micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  audioContext = new AudioContext();
-  const source = audioContext.createMediaStreamSource(micStream);
-  analyser = audioContext.createAnalyser();
-  analyser.fftSize = 2048;
-  source.connect(analyser);
-}
-
-async function measureWindow(durationMs = 1000) { 
-  if (!analyser) {
-    throw new Error("Microfono non inizializzato");
-  }
-  const data = new Uint8Array(analyser.fftSize);
-  let sum = 0;
-  let samples = 0;
-  const start = Date.now();
-  return new Promise(resolve => {
-    const interval = setInterval(() => {
-      analyser.getByteTimeDomainData(data);
-      let rms = 0;
-      for (let i = 0; i < data.length; i++) {
-        const v = (data[i] - 128) / 128.0;
-        rms += v * v;
-      }
-      rms = Math.sqrt(rms / data.length);
-      const db = 20 * Math.log10(rms || 0.000001); 
-      sum += db;
-      samples++;
-      if (Date.now() - start >= durationMs) {
-        clearInterval(interval);
-        resolve(sum / samples);
-      }
-    }, 50); 
-  });
-}
-
-socket.on("start_mic_sampling", async () => {
-  if (micSampling) return;
-  try {
-    await initMic();
-    micSampling = true;
-    micSum = 0;
-    micSamples = 0;
-    micInterval = setInterval(async () => {
-      if (!micSampling) return;
-      const avgDb = await measureWindow(1000); 
-      micSum += avgDb;
-      micSamples++;
-    }, 1100); 
-  } catch (error) {
-    console.error("Error in reading mic:", error);
-    socket.emit("mic_sampling_error", { message: error.message });
-  }
-});
-
-socket.on("stop_mic_sampling", () => {
-  micSampling = false;
-  if (micInterval) {
-    clearInterval(micInterval);
-    micInterval = null;
-  }
-
-  let finalAvgDb = micSamples ? micSum / micSamples : -Infinity;
-
-  let score = 1;
-
-  if (finalAvgDb !== -Infinity && isFinite(finalAvgDb)) {
-    const minDb = -50;    // Range Db min
-    const maxDb = -1;    // Range Db max
-
-    if (finalAvgDb >= maxDb) {
-      score = 100;
-    } else if (finalAvgDb > minDb) {
-      let normalized = (finalAvgDb - minDb) / (maxDb - minDb); 
-      normalized = Math.pow(normalized, 2.0); 
-      score = Math.round(1 + normalized * 99); 
-    } else {
-      score = 1;
-    }
-  }
-
-  socket.emit("mic_sampling_result", {
-    avg_db: score,         
-    samples: micSamples,
-  });
-});

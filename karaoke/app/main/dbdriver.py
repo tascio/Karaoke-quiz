@@ -67,20 +67,6 @@ class QuizRepo:
     def __init__(self, redis: RedisClient):
         self.redis = redis.redis
     
-    def populate(self, quiz, id_q):
-        try:
-            self.redis.json().set(f"quiz:{id_q}", "$", {
-                "quiz": quiz['quiz'],
-                "answers": quiz['answers'],
-                "correct": quiz['correct'],
-                "done": False,
-            })
-            logger.info(f"new quiz added {id_q}")
-        except Exception as e:
-            logger.error(f"Redis quiz populate error: {e}")
-            return False
-        return True
-    
     def get_quizzes_not_done(self):
         keys = []
         cursor = 0
@@ -124,71 +110,41 @@ class QuizRepo:
         except Exception as e:
             logger.error(f"Error in getting all quiz {e}")
             return False
-        
+    
 
 class RoundsRepo:
     def __init__(self, redis: RedisClient):
         self.redis = redis.redis
-    
-    def get_current_question(self):
-        cursor = 0
-        try:
-            while True:
-                cursor, keys = self.redis.scan(cursor, match="round:*", count=100)
-                for key in keys:
-                    if isinstance(key, bytes):
-                        key = key.decode("utf-8")
 
-                    data = self.redis.json().get(key)
-                    if data and data.get("current") is True:
-                        data["id_q"] = key.split(":")[-1]
-                        return data
-
-                if cursor == 0:
-                    break
-        except Exception as e:
-            logger.error(f"Error getting current round: {e}")
-            return False
-
-        return None
-
-    def set_start_question(self, id_q):
+    def set_start_question(self):
         try:
             t = time.time()
-            self.redis.json().set(f"round:{id_q}", "$.start_ts", t)
-            logger.info(f"question start setted {id_q} {t}")
+            self.redis.json().set(f"round:current", "$.start_ts", t)
+            logger.info(f"question start setted {t}")
             return True
         except Exception as e:
             logger.error(f"start setting question error: {e}")
             return False
     
-    def set_current_question(self, id_q):
-        cursor = 0
-        while True:
-            cursor, keys = self.redis.scan(cursor, match="round:*")
-            for key in keys:
-                self.redis.json().set(key, "$.current", False)
-            if cursor == 0:
-                break
-
-        key = f"round:{id_q}"
-
+    def initialize_current_qestion_round(self, question):
         try:
-            if not self.redis.exists(key):
-                self.redis.json().set(key, "$", {
-                    "current": True
-                })
-            else:
-                self.redis.json().set(key, "$.current", True)
-
-            logger.info(f"question set {id_q}")
+            question["start_ts"] = None
+            self.redis.json().set("round:current", "$", question)
+            logger.info(f"Inizializzato round current question {question}")
             return True
-
         except Exception as e:
-            logger.error(f"setting question error: {e}")
+            logger.error(f"Error in inizialize current question {e}")
             return False
-
     
+    def get_current_question_round(self):
+        try:
+            question = self.redis.json().get("round:current", "$")[0]
+            logger.info(f"Getting current question {question}")
+            return question
+        except Exception as e:
+            logger.error(f"Error getting current question round {e}")
+            return False
+        
 class AnswersRepo:
     def __init__(self, redis: RedisClient):
         self.redis = redis.redis
@@ -232,7 +188,7 @@ class AnswersRepo:
             self.redis.json().set(f"answer:{id_q}", f"$.players.{ip}.answer", answer)
             self.redis.json().set(f"answer:{id_q}", f"$.players.{ip}.points", points)
             self.redis.json().set(f"answer:{id_q}", f"$.players.{ip}.done", True)
-            logger.info(f"player answer saved {id_q} {ip} - {answer} - {response_time} - {points}")
+            logger.info(f"player answer saved {id_q} {ip} - answ={answer} - rt={response_time} - p={points}")
         except Exception as e:
             logger.error(f"player answer error {e}")
             return False
@@ -250,7 +206,7 @@ class AnswersRepo:
     
     def get_player_answer(self, id_q, ip):
         answ = self.redis.json().get(f"answer:{id_q}", f"$.players.{ip}.answer")
-        logger.info(f"get player answer {id_q} {ip} {answ}")
+        logger.info(f"get player answer id_q={id_q} ip={ip} answ={answ}")
         if answ is None:
             return False
         return answ[0] if len(answ) > 0 else False
@@ -258,7 +214,9 @@ class AnswersRepo:
 class CurrentGameState:
     def __init__(self, redis: RedisClient):
         self.redis = redis.redis
-
+        self.redis.json().set(f"game:state", "$", {"state" : "idle" })
+        self.redis.json().set(f"game:audio", "$", {"effects" : True })
+        
     def update_game_state(self, state):
         try:
             self.redis.json().set(f"game:state", "$", {
@@ -274,3 +232,35 @@ class CurrentGameState:
         state = (self.redis.json().get(f"game:state") or {}).get('state', None)
         logger.info(f"get game state {state}")
         return state
+    
+    def set_audio_effects_karaoke(self, setting):
+        try:
+            self.redis.json().set("game:audio_k", "$", {
+                "effects": setting
+            })
+            logger.info(f"game audio karaoke effects setting {setting}")
+            return True
+        except Exception as e:
+            logger.error(f"error in game audio karaoke effects setting {e}")
+            return False
+        
+    def get_audio_effects_karaoke(self):
+        effects = (self.redis.json().get("game:audio_k") or {}).get('effects', None)
+        logger.info(f"get game audio karaoke effetcs {effects}")
+        return effects
+    
+    def set_audio_effects_players(self, setting):
+        try:
+            self.redis.json().set("game:audio_p", "$", {
+                "effects": setting
+            })
+            logger.info(f"game audio players effects setting {setting}")
+            return True
+        except Exception as e:
+            logger.error(f"error in game audio players effects setting {e}")
+            return False
+        
+    def get_audio_effects_players(self):
+        effects = (self.redis.json().get("game:audio_p") or {}).get('effects', None)
+        logger.info(f"get game audio players effetcs {effects}")
+        return effects

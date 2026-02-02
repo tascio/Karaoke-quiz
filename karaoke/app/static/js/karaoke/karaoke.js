@@ -1,5 +1,26 @@
+
+
 const video = document.getElementById("video-player");
+const overlay = document.getElementById("countdown-overlay");
+const number = document.getElementById("countdown-number");
 let unlocked = false;
+
+const trophies = {
+    1: "🏆",
+    2: "🥈",
+    3: "🥉"
+  };
+
+  
+socket.on("sync_state", data => {
+    console.log('data sync', data);
+    if (!data) {
+      return;
+    }
+    if (typeof data.audioEffectsKaraoke === "boolean") {
+      audioEffectsKaraoke = data.audioEffectsKaraoke;
+    }
+  });
 
 socket.on("quiz_finished", () => alert("Quiz ended!"));
 
@@ -17,6 +38,11 @@ socket.on("play_song", data => {
 
 // Mostra domanda
 socket.on("show_question", data => {
+    console.log("show question ", data);
+    if (audioEffectsKaraoke) {
+        toggleAudio(audioBoxingbell);
+    }
+    
     document.getElementById("qr-codes").classList.add("d-none");
     document.getElementById("countdown-overlay").classList.add("d-none");
     if (!video.paused) {
@@ -27,6 +53,9 @@ socket.on("show_question", data => {
 
     document.getElementById("quiz").classList.remove("d-none");
     document.getElementById("question").innerText = data.question;
+
+    const author = document.getElementById("author");
+    author.textContent = `by ${data.author}`;
 
     const choicesDiv = document.getElementById("choices");
     choicesDiv.innerHTML = "";
@@ -55,23 +84,31 @@ socket.on("show_question", data => {
 
 // Mostra risposta corretta e classifica
 socket.on("show_answer", data => {
+    console.log("show answer ", data);
+    playRandomAudioKaraoke(audioEndRound);
     document.getElementById("qr-codes").classList.add("d-none");
     document.getElementById("countdown-overlay").classList.add("d-none");
     const correctIndex = data.correct;
     const choicesDiv = document.getElementById("choices");
 
     [...choicesDiv.children].forEach((el, i) => {
-        const answerBox = el.querySelector(".answer-box"); // prendi il div interno        
+        const answerBox = el.querySelector(".answer-box"); 
 
         if (i === correctIndex) {
-            //answerBox.classList.remove("bg-info", "bg-warning", "bg-danger", "bg-purple", "bg-primary");
             answerBox.classList.add("border", "border-success", "border-6", "answer-box-right"); // evidenzia corretta
         } else {
             answerBox.style.opacity = "0.25"; // sfuma le altre
         }
     });
+   show_round_scores(data);
+});
 
+socket.on("show_round_scores", data => {
+    show_round_scores(data);
+});
 
+function show_round_scores(data) {
+    console.log(data);
     // aggiorna classifica
     const scores = document.getElementById("scores");
     scores.classList.remove("d-none");
@@ -97,7 +134,7 @@ socket.on("show_answer", data => {
 
             ul.appendChild(li);
     });
-});
+}
 
 
 
@@ -138,16 +175,15 @@ socket.on("show_ranking_karaoke", data => {
 
   
 
-  const overlay = document.getElementById("countdown-overlay");
-  const number = document.getElementById("countdown-number");
+
   
 socket.on("show_countdown", data => {
-overlay.classList.remove("d-none");
-number.innerText = data.count;
+    overlay.classList.remove("d-none");
+    number.innerText = data.count;
 
-number.style.animation = "none";
-number.offsetHeight; // trigger reflow
-number.style.animation = null;
+    number.style.animation = "none";
+    number.offsetHeight; // trigger reflow
+    number.style.animation = null;
 });
   
 
@@ -163,3 +199,5 @@ socket.on("karaoke_idle", () => {
 socket.on("action_blocked", data => {
     console.log(data);
 });
+
+

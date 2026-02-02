@@ -1,22 +1,41 @@
 import logging
+from logging.handlers import RotatingFileHandler
 
 logger = logging.getLogger("my_logger")
 logger.setLevel(logging.DEBUG)
 
+MAX_BYTES = 10 * 1024 * 1024  # 10 MB
+BACKUP_COUNT = 2
 
-info_handler = logging.FileHandler("./main/logs/info.log")
+info_handler = RotatingFileHandler(
+    "./logger/logs/info.log",
+    maxBytes=MAX_BYTES,
+    backupCount=BACKUP_COUNT
+)
 info_handler.setLevel(logging.INFO)  
 
-debug_handler = logging.FileHandler("./main/logs/debug.log")
+debug_handler = RotatingFileHandler(
+    "./logger/logs/debug.log",
+    maxBytes=MAX_BYTES,
+    backupCount=BACKUP_COUNT)
 debug_handler.setLevel(logging.DEBUG)  
 
-warning_handler = logging.FileHandler("./main/logs/warning.log")
+warning_handler = RotatingFileHandler(
+    "./logger/logs/warning.log",
+    maxBytes=MAX_BYTES,
+    backupCount=BACKUP_COUNT)
 warning_handler.setLevel(logging.WARNING)
 
-error_handler = logging.FileHandler("./main/logs/error.log")
+error_handler = RotatingFileHandler(
+    "./logger/logs/error.log",
+    maxBytes=MAX_BYTES,
+    backupCount=BACKUP_COUNT)
 error_handler.setLevel(logging.ERROR)
 
-critical_handler = logging.FileHandler("./main/logs/critical.log")
+critical_handler = RotatingFileHandler(
+    "./logger/logs/critical.log",
+    maxBytes=MAX_BYTES,
+    backupCount=BACKUP_COUNT)
 critical_handler.setLevel(logging.CRITICAL)
 
 formatter = logging.Formatter(f'%(asctime)s - %(filename)s - %(lineno)d - %(name)s - %(levelname)s - %(message)s')

@@ -30,7 +30,12 @@
 
 <video id="video-player" width="80%" controls class="d-none"></video>
 <div id="quiz" class="container text-center mt-4 d-none">
-    <h2 id="question" class="mb-4 fs-1"></h2>
+    <h2 id="question" class="mb-0 fs-1"></h2>
+    <div class="d-flex justify-content-center align-items-center mb-3">
+        <small id="author" class="text-light fst-italic opacity-75">
+          
+        </small>
+    </div>
     <div id="choices" class="row justify-content-center"></div>
 </div>
 
@@ -47,5 +52,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/karaoke.js"></script>
+<script src="/static/js/karaoke/karaoke.js"></script>
+<script src="/static/js/karaoke/effects.js"></script>
+<script src="/static/js/karaoke/premiation.js"></script>
 {% endblock %}

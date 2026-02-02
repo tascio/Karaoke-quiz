@@ -52,25 +52,32 @@ class QuizService:
     
     def get_all_quizzes(self):
         return self.quiz.get_all_quizzes()
+      
+
     
 class RoundsService:
     def __init__(self, rounds_service: RoundsRepo):
         self.round = rounds_service
     
-    def set_current_question(self, id_q):
-        self.round.set_current_question(id_q)
+    # def set_current_question(self, id_q):
+    #     self.round.set_current_question(id_q)
     
-    def set_start_question(self, id_q):
-        self.round.set_start_question(id_q)
+    def set_start_question(self):
+        self.round.set_start_question()
     
-    def get_current_question(self):
-        return self.round.get_current_question()
+    # def get_current_question(self):
+    #     return self.round.get_current_question()
+    
+    def initialize_current_qestion_round(self, question):
+        return self.round.initialize_current_qestion_round(question)
+    
+    def get_current_question_round(self):
+        return self.round.get_current_question_round()
 
 class AnswersService:
-    def __init__(self, answers_repo: AnswersRepo, rounds_repo: RoundsRepo, quiz_repo: QuizRepo):
+    def __init__(self, answers_repo: AnswersRepo, rounds_repo: RoundsRepo):
         self.answer = answers_repo
         self.rounds = rounds_repo
-        self.quiz = quiz_repo
 
     def exist_answer(self, id_q, ip):
         return self.answer.exist_answer(id_q, ip)
@@ -85,7 +92,7 @@ class AnswersService:
         self.answer.set_players_done(id_q)
     
     def save_player_answer(self, ip, answer, time_answer):
-        round = self.rounds.get_current_question()
+        round = self.rounds.get_current_question_round()
         id_q = round['id_q']
         start_ts = round['start_ts']
 
@@ -114,7 +121,7 @@ class AnswersService:
         return self.answer.get_player_answer(id_q, ip)
         
     def _calculate_points(self, id_q, answer, response_time):
-        quiz = self.quiz.get_quiz(id_q)
+        quiz = self.rounds.get_current_question_round()
         correct = quiz['correct']
 
         if answer == correct:
@@ -131,5 +138,17 @@ class GameStateService:
     
     def get_current_game_state(self):
         return self.gmservice.get_current_game_state()
+    
+    def set_audio_effects_karaoke(self, effect):
+        return self.gmservice.set_audio_effects_karaoke(effect)
+    
+    def get_audio_effects_karaoke(self):
+        return self.gmservice.get_audio_effects_karaoke()
+    
+    def set_audio_effects_players(self, effect):
+        return self.gmservice.set_audio_effects_players(effect)
+    
+    def get_audio_effects_players(self):
+        return self.gmservice.get_audio_effects_players()
 
 

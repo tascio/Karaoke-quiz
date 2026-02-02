@@ -17,4 +17,4 @@ gamestate_repo = CurrentGameState(redis_client)
 gamestate_service = GameStateService(gamestate_repo)
 
 answers_repo = AnswersRepo(redis_client)
-answers_service = AnswersService(answers_repo, rounds_repo, quiz_repo)
+answers_service = AnswersService(answers_repo, rounds_repo)

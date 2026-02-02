@@ -15,7 +15,7 @@ def create_app():
         logger.info(f"base dir = {BASEDIR}")
         app = Flask(__name__, template_folder='../static/templates', static_folder='../static')
         socketio.init_app(app, cors_allowed_origins="*")
-        from main import socket_service
+        from sockets import socket_service, karaokeAudio, playersAudio
 
         app.register_blueprint(views_bp)
 
