@@ -34,3 +34,19 @@ def audioGemido():
 @socketio.on("audioGemido2")
 def audioGemido2():
     socketio.emit("audioGemido2Karaoke")
+
+@socketio.on("audioAttenzioneNapoletan")
+def audioAttenzioneNapoletan():
+    socketio.emit("audioAttenzioneNapoletanKaraoke")
+
+@socketio.on("audioMarioByeBye")
+def audioMarioByeBye():
+    socketio.emit("audioMarioByeByeKaraoke")
+
+@socketio.on("audioSignLimoni")
+def audioSignLimoni():
+    socketio.emit("audioSignLimoniKaraoke")
+
+@socketio.on("audioItaRage")
+def audioItaRage():
+    socketio.emit("audioItaRageKaraoke")

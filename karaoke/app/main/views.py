@@ -1,6 +1,6 @@
-from flask import Flask, render_template, Blueprint, jsonify, g
+from flask import Flask, render_template, Blueprint, g
 from containers.containers import teams_service, quiz_service, rounds_service, gamestate_service
-from main.decorators import is_ip_registered
+from main.decorators import is_ip_registered, host_restricted
 from configs.config import *
 
 views_bp = Blueprint('views', __name__)
@@ -12,6 +12,7 @@ def player():
     return render_template("pages/player.html", team=g.team)
 
 @views_bp.route("/host")
+@host_restricted()
 def host():
     teams = teams_service.get_teams()
     question = rounds_service.get_current_question_round()
@@ -21,5 +22,6 @@ def host():
                            audioEffectsPlayers=gamestate_service.get_audio_effects_players())
 
 @views_bp.route("/karaoke")
+@host_restricted()
 def karaoke():
     return render_template("pages/karaoke.html")

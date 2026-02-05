@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import g, request
+from flask import g, request, abort
 from containers.containers import teams_service, gamestate_service
 from main.utils import request_ip
 from main.extensions import socketio
@@ -13,6 +13,18 @@ def is_ip_registered(f):
         g.team = teams_service.get_team(ip)
         return f(*args, **kwargs)
     return decorated_function
+
+def host_restricted():
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            ip = request_ip().replace('_', '.')
+            logger.info(f"{ip} request access {request}")
+            if ip == "172.19.0.1":
+                return f(*args, **kwargs)
+            return abort(403)
+        return decorated_function
+    return decorator
 
 def interlock(state_permitted):
     def decorator(f):

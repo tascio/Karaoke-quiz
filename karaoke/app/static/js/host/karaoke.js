@@ -23,23 +23,37 @@ function audioEffectsKaraokeOff() {
 }
 
 function audioBoxingBell() {
-socket.emit("audioBoxingBell");
+    socket.emit("audioBoxingBell");
 }
 
 function audioApplauseCrowd() {
-socket.emit("audioApplauseCrowd");
+    socket.emit("audioApplauseCrowd");
 }
 
 function audioCrowdPanic() {
-socket.emit("audioCrowdPanic");
+    socket.emit("audioCrowdPanic");
 }
 
 function audioGemido() {
-socket.emit("audioGemido");
+    socket.emit("audioGemido");
 }
 
 function audioGemido2() {
-socket.emit("audioGemido2");
+    socket.emit("audioGemido2");
 }
 
+function audioAttenzioneNapoletan() {
+    socket.emit("audioAttenzioneNapoletan");
+}
 
+function audioMarioByeBye() {
+    socket.emit("audioMarioByeBye");
+}
+
+function audioSignLimoni() {
+    socket.emit("audioSignLimoni");
+}
+
+function audioItaRage() {
+    socket.emit("audioItaRage");
+}
