@@ -10,6 +10,15 @@ services:
     networks:
       karaoke_net:
         ipv4_address: 172.19.0.10
+  
+  karaoke_frontend:
+    container_name: karaoke_frontend_container
+    build: ./frontend
+    image: karaoke_frontend_image
+    expose:
+      - "80"
+    networks:
+      - karaoke_net
 
   karaoke_nginx:
     container_name: karaoke_nginx_container
@@ -22,6 +31,7 @@ services:
       - "443:443"
     depends_on:
       - karaoke
+      - karaoke_frontend
     networks:
       - karaoke_net
   
