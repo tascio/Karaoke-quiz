@@ -9,6 +9,7 @@ class GameState:
     QUIZ = "quiz"
     QUIZ_END = "quiz_end"
     RESULTS = "results"
+    END_GAME = "end_game"
 
 class TeamsService:
     def __init__(self, teams_repo: TeamsRepo):

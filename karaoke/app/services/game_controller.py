@@ -29,7 +29,7 @@ class GameController:
             gamestate_service.update_game_state(GameState.QUIZ)
             rounds_service.set_start_question()
             logger.info(f"sending question {question}")
-            return question
+            return #question
        
     
     def on_quiz_timeout(self):

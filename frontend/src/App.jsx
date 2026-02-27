@@ -1,33 +1,25 @@
-import { useEffect } from "react";
-import { io } from "socket.io-client";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Layout from "./layout/Layout";
+import Player from "./pages/Player";
+import Host from "./pages/Host";
+import Karaoke from "./pages/Karaoke";
 
 function App() {
-
-  useEffect(() => {
-
-    const socket = io(window.location.origin, {
-      path: "/socket.io",
-      transports: ["websocket"]
-    });    
-
-    socket.on("connect", () => {
-      console.log("Connesso al backend:", socket.id);
-    });
-
-    socket.on("message", (data) => {
-      console.log("Messaggio ricevuto:", data);
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-
-  }, []);
-
   return (
-    <div>
-      <h1>SingQuiz 🎤</h1>
-    </div>
+    <BrowserRouter>
+      <Layout>
+        <Routes>
+          {/* Route principali */}
+          <Route path="/player" element={<Player />} />
+          <Route path="/karaoke" element={<Karaoke />} />
+          <Route path="/host" element={<Host />} />
+          <Route path="/" element={<Player  />} />
+
+          {/* Route di default: se l'URL non corrisponde a nulla, vai su /player */}
+          <Route path="*" element={<Navigate to="/player" replace />} />
+        </Routes>
+      </Layout>
+    </BrowserRouter>
   );
 }
 

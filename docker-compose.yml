@@ -7,33 +7,52 @@ services:
       - ./karaoke/app:/app
     expose:
       - "5090"
+    ports:
+      - "5090:5090"
     networks:
       karaoke_net:
         ipv4_address: 172.19.0.10
   
+  # karaoke_frontend:
+  #   container_name: karaoke_frontend_container
+  #   build: ./frontend
+  #   image: karaoke_frontend_image
+  #   ports:
+  #     - "5173:5173"
+  #   expose:
+  #     - "80"
+  #   networks:
+  #     - karaoke_net
   karaoke_frontend:
     container_name: karaoke_frontend_container
-    build: ./frontend
-    image: karaoke_frontend_image
-    expose:
-      - "80"
+    image: node:22
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev -- --host"
+    ports:
+      - "5173:5173"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
     networks:
       - karaoke_net
 
-  karaoke_nginx:
-    container_name: karaoke_nginx_container
-    image: nginx:alpine
-    volumes:
-      - ./nginx/client_nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
-    ports:
-    #  - "80:80"
-      - "443:443"
-    depends_on:
-      - karaoke
-      - karaoke_frontend
-    networks:
-      - karaoke_net
+
+  # karaoke_nginx:
+  #   container_name: karaoke_nginx_container
+  #   image: nginx:alpine
+  #   volumes:
+  #     - ./nginx/client_nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./ssl:/etc/nginx/ssl:ro
+  #   ports:
+  #   #  - "80:80"
+  #     - "443:443"
+  #   depends_on:
+  #     - karaoke
+  #     - karaoke_frontend
+  #   networks:
+  #     - karaoke_net
   
   redistimeseries:
     container_name: karaoke_redis_container

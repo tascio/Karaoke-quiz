@@ -1,4 +1,4 @@
-from flask import request
+from flask import request, g
 from main.extensions import socketio
 from containers.containers import teams_service, rounds_service, gamestate_service, answers_service
 from services.game_controller import GameController
@@ -14,6 +14,60 @@ gsc = GameController()
 
 MP4_PATH_FOR_JS = "/static/media/"
 
+@socketio.on("changeStateToIdle")
+def changeStateToIdle():
+    gamestate_service.update_game_state(GameState.IDLE)
+    emitCurrentGameState()
+
+@socketio.on("changeStateToSing")
+def changeStateToSing():
+    gamestate_service.update_game_state(GameState.SING)
+    emitCurrentGameState()
+
+@socketio.on("changeStateToQuiz")
+def changeStateToQuiz():
+    gamestate_service.update_game_state(GameState.QUIZ)
+    emitCurrentGameState()
+
+@socketio.on("changeStateToQuizEnd")
+def changeStateToQuizEnd():
+    gamestate_service.update_game_state(GameState.QUIZ_END)
+    emitCurrentGameState()
+
+@socketio.on("changeStateToResults")
+def changeStateToResults():
+    gamestate_service.update_game_state(GameState.RESULTS)
+    emitCurrentGameState()
+
+
+def emitCurrentGameState():
+    ip = request_ip()
+    team = teams_service.get_team(ip)
+    state = gamestate_service.get_current_game_state()
+
+    socketio.emit("sync_player_back", {
+        'team': team if team else None,
+        'state': state, 
+        'audioEffectsKaraoke': gamestate_service.get_audio_effects_karaoke(),
+        'audioEffectsPlayers': gamestate_service.get_audio_effects_players()}, 
+        to=ip)
+    
+    if state == GameState.QUIZ:
+        logger.info(f"{ip} did a refresh in quiz")
+        emit_show_question()
+
+    elif state == GameState.QUIZ_END:
+        logger.info(f"{ip} did a refresh in quiz end")
+        send_question_refresh()
+
+    elif state == GameState.END_GAME:
+        logger.info(f"Broadcast END GAME")
+        socketio.emit("end_game")
+
+@socketio.on("sync_player")
+def sync_player():
+    emitCurrentGameState()
+
 @socketio.on("setIdle")
 def setIdle():
     gamestate_service.update_game_state(GameState.IDLE)
@@ -26,9 +80,14 @@ def join(data):
     username = data["username"][:20]
     ip = request_ip()
     if teams_service.register(ip, username):
-        socketio.emit("join_ok", to=sid)
+        team = teams_service.get_team(ip)
+        socketio.emit("join_ok",{"team": team}, to=sid)
     else:
         socketio.emit("username_exist", to=sid)
+
+@socketio.on("sync_state_show_answer")
+def sync_state_show_answer():
+    emitCurrentGameState()
 
 @socketio.on("connect")
 def on_connect():
@@ -36,18 +95,6 @@ def on_connect():
     sid = request.sid
     join_room(ip)
     logger.info(f"SOCKET CONNECTED {ip} sid={sid}")
-    socketio.emit("sync_state", {
-        'state': gamestate_service.get_current_game_state(), 
-        'audioEffectsKaraoke': gamestate_service.get_audio_effects_karaoke(),
-        'audioEffectsPlayers': gamestate_service.get_audio_effects_players()}, 
-        to=ip)
-
-
-#GAME STATUS GET SING
-@socketio.on("start_song_refresh")
-def start_song_refresh():
-    sid = request.sid
-    socketio.emit("show_sing", to=sid)
 
 
 #GAME STATUS SET SING
@@ -91,8 +138,8 @@ def send_question_refresh():
 @interlock([GameState.SING])
 def send_question():
     stop_mic_sampling()
-    quiz = gsc.send_question()
-    do_the_quiz(quiz, gsc.on_quiz_timeout)
+    gsc.send_question()
+    do_the_quiz(gsc.on_quiz_timeout)
    
 @socketio.on("answer")
 def receive_answer(data):
@@ -152,37 +199,37 @@ def showPremiation():
 def emit_start_song(video, current_question):
     socketio.emit("play_song", {"video": f"{MP4_PATH_FOR_JS}{video}"})
     socketio.emit("start_mic_sampling")
-    socketio.emit("show_sing")
     socketio.emit("current_question_host", current_question)
     socketio.emit("all_question_host", current_question)
+    emitCurrentGameState()
 
 def stop_mic_sampling():
     socketio.emit("stop_mic_sampling")
     end_question_before_show()
 
-def do_the_quiz(quiz, on_timeout):
+def emit_show_question():
+    quiz = rounds_service.get_current_question_round()
     socketio.emit("show_question", {
         "quid": quiz["id_q"],
         "question": quiz["question"],
         "choices": quiz["answers"],
         "author": quiz["author"].capitalize(),
     })
+
+def do_the_quiz(on_timeout):
+    emitCurrentGameState()
+    emit_show_question()
     socketio.start_background_task(end_question_after_timeout, on_timeout)
 
 def end_question(teams, correct, scores_this_round):
-    id_q = rounds_service.get_current_question_round()['id_q']
-
     socketio.emit("show_scores_host", teams)
     socketio.emit("show_answer", {"correct": correct, "teams": scores_this_round})
-    for ip in teams.keys():
-        ip = ip.split(':')[-1]
-        logger.info(f"show anser right to {ip}")
-        answer = answers_service.get_player_answer(id_q, ip)
-        socketio.emit("show_answer_right_players", {"correct": correct, "answer": answer}, room=ip)
+    socketio.emit("force_sync_state_player")
+    logger.info("end question >")
 
 def emit_end_game():
-    gamestate_service.update_game_state(GameState.QUIZ_END)
-    socketio.emit("quiz_finished")
+    gamestate_service.update_game_state(GameState.END_GAME)
+    emitCurrentGameState()
 
 def end_question_before_show():
     i = 3
