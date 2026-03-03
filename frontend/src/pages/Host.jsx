@@ -69,10 +69,9 @@ export default function Host() {
             <div className="col-4">
             <button onClick={() => emit("start_song")}>🎵 Avvia Karaoke</button>
             <button onClick={() => emit("request_question")}>❓ Avvia Domanda</button>
-            <button onClick={() => emit("show_round_score")}>✅ Mostra Round</button>
+            <button onClick={() => emit("showRoundScore")}>✅ Mostra Round</button>
             <button onClick={() => emit("show_ranking")}>📄 Mostra Classifica</button>
             <button onClick={() => emit("refresh_players")}>Refresh Players</button>
-            <button onClick={() => emit("set_idle")}>Set Idle</button>
             <br/><br/>
             <button onClick={() => emit("show_premiation")}>Premiation</button>
             </div>

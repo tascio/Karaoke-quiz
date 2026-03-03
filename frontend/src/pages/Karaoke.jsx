@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef } from "react";
-import QRSection from "../components/QRSection";
-import VideoPlayer from "../components/VideoPlayer";
-import Quiz from "../components/Quiz";
-import Scores from "../components/Scores";
-import Countdown from "../components/Countdown";
-import Premiation from "../components/Premiation";
+import QRSection from "../components/karaoke/QRSection";
+import VideoPlayer from "../components/karaoke/VideoPlayer";
+import Quiz from "../components/karaoke/Quiz";
+import Scores from "../components/karaoke/Scores";
+import Countdown from "../components/karaoke/Countdown";
+import Premiation from "../components/karaoke/Premiation";
+import Ranking from "../components/karaoke/Ranking";
 import useKaraokeSocket from "../hooks/karaoke/useKaraokeSocket";
 import useAudioEffects from "../hooks/karaoke/useAudioEffects";
 import { socket } from "../socket";
@@ -38,6 +39,16 @@ export default function Karaoke() {
       setScoresData(data.teams);
     },
 
+    onShowRoundScores: (data) => {
+      setScoresData(data.teams);
+      setView("scores");
+    },
+
+    onShowRanking: (data) => {
+      setScoresData(data.teams);
+      setView("ranking")
+    },
+
     onShowCountdown: (data) => {
       setCountdown(data.count);
     },
@@ -64,9 +75,8 @@ export default function Karaoke() {
         </>
       )}
       {view === "scores" && <Scores teams={scoresData} />}
-
+      {view === "ranking" && <Ranking teams={scoresData} />}
       {view === "premiation" && <Premiation teams={premiationData} />}
-
       {countdown && <Countdown count={countdown} />}
 
     </div>

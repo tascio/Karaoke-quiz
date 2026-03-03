@@ -165,7 +165,7 @@ def showRoundScore():
 @interlock([GameState.QUIZ_END])
 def show_ranking():
     teams = teams_service.get_teams()
-    socketio.emit("show_ranking_karaoke", teams)
+    socketio.emit("show_ranking_karaoke", {"teams": teams})
 
 @socketio.on("mic_sampling_result")
 def mic_sampling_result(data):
@@ -180,8 +180,8 @@ def mic_sampling_result(data):
 def refresh_players():
     socketio.emit("refresh_players")
 
-@socketio.on("showPremiation")
-def showPremiation():
+@socketio.on("show_premiation")
+def show_premiation():
     test = [{'username': "Cell", 'points': 2708, 'p_audio': 10},
             {'username': "pippo", 'points': 2108, 'p_audio': 103},
             {'username': "Cetinoll", 'points': 2208, 'p_audio': 70},
@@ -237,6 +237,7 @@ def end_question_before_show():
         socketio.emit("show_countdown", {"count" : f"Question in {i}"})
         i -= 1
         socketio.sleep(1)
+    socketio.emit("show_countdown", {"count" :  None})
     logger.info(f"countdown expired, going to emit show_question")
     return
             
@@ -246,6 +247,7 @@ def end_question_after_timeout(on_timeout):
         socketio.emit("show_countdown", {"count" : i})
         i -= 1
         socketio.sleep(1)
+    socketio.emit("show_countdown", {"count" :  None})
     logger.info(f"countdown expired got to end_question")
     gamestate_service.update_game_state(GameState.QUIZ_END)
     teams, correct, scores_this_round = on_timeout()

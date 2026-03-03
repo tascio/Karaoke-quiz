@@ -136,7 +136,6 @@ export default function Quiz({ question, answer, audioEffectsPlayers }) {
                 position: "absolute",
                 mask: "url('/static/icons/check2-circle.svg') no-repeat center",
                 maskSize: "contain",
-                WebkitMask: "url('/static/icons/check2-circle.svg') no-repeat center",
                 top: "30%",
                 left: "60%"
                 }}
@@ -153,7 +152,6 @@ export default function Quiz({ question, answer, audioEffectsPlayers }) {
                 position: "absolute",
                 mask: "url('/static/icons/x-circle.svg') no-repeat center",
                 maskSize: "contain",
-                WebkitMask: "url('/static/icons/x-circle.svg') no-repeat center",
                 top: "30%",
                 left: "60%"
                 }}

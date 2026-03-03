@@ -7,10 +7,10 @@ export default function Quiz({ data, correct }) {
   
     return (
         <>
+            {console.log(correct)}
             {correct !== null && (
                 <>
                     {console.log(correct)}
-                    <p>DIO CANE</p>
                 </>
             )}
             <div className="container text-center mt-4">
@@ -31,8 +31,12 @@ export default function Quiz({ data, correct }) {
                     return (
                     <div key={i} className="col-12 col-md-8 mb-3">
                         <div
-                            className={`answer-box d-flex align-items-center p-3 rounded text-white ${
-                                isCorrect ? "border border-success border-6 answer-box-right" : `bg-${colors[i % colors.length]}`
+                            className={`answer-box d-flex align-items-center p-3 rounded text-white bg-${colors[i % colors.length]} ${
+                                correct === null
+                                    ? "opacity-100"
+                                    : isCorrect 
+                                        ? "border border-success border-6 answer-box-right" 
+                                        : "opacity-25"
                             }`}
                         >
                         <div className="answer-letter me-3 fw-bold fs-1">
